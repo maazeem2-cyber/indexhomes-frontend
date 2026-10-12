@@ -13,9 +13,18 @@ type ModalProps = {
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  elevated?: boolean;
 };
 
-export function Modal({ open, title, description, onClose, children, wide }: ModalProps) {
+export function Modal({
+  open,
+  title,
+  description,
+  onClose,
+  children,
+  wide,
+  elevated,
+}: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -35,7 +44,11 @@ export function Modal({ open, title, description, onClose, children, wide }: Mod
   return createPortal(
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center p-3 sm:items-center sm:p-6">
+        <div
+          className={`fixed inset-0 flex items-end justify-center p-3 sm:items-center sm:p-6 ${
+            elevated ? "z-[90]" : "z-[80]"
+          }`}
+        >
           <motion.button
             type="button"
             aria-label="Close dialog"

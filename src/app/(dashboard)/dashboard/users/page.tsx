@@ -5,6 +5,7 @@ import { AdminTable, AdminTd, ActionIconButton, StatusPill } from "@/components/
 import { Button, ButtonLink } from "@/components/Button";
 import { FadeIn } from "@/components/FadeIn";
 import { ArrowRightIcon, LogInIcon, PencilIcon } from "@/components/icons";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { Modal } from "@/components/Modal";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
@@ -14,6 +15,11 @@ import { api, type AdminUser, type PaginationMeta, type Profile } from "@/lib/ap
 import { getAccessToken, getProfile } from "@/lib/auth";
 
 const PAGE_SIZE = 20;
+
+type ConfirmState =
+  | { type: "edit"; user: AdminUser }
+  | { type: "save" }
+  | null;
 
 function roleTone(role: AdminUser["role"]) {
   if (role === "admin") return "warn" as const;
@@ -36,6 +42,7 @@ export default function AdminUsersPage() {
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [editRole, setEditRole] = useState<"buyer" | "seller" | "admin">("buyer");
   const [editName, setEditName] = useState("");
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
 
   const token = typeof window !== "undefined" ? getAccessToken() : null;
 
@@ -83,14 +90,23 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.role, page, debouncedQ, roleFilter]);
 
-  function openEdit(user: AdminUser) {
+  function fillEditForm(user: AdminUser) {
     setEditing(user);
     setEditRole(user.role);
     setEditName(user.display_name);
   }
 
-  async function onSave(e: FormEvent) {
+  function requestEdit(user: AdminUser) {
+    setConfirm({ type: "edit", user });
+  }
+
+  function onSave(e: FormEvent) {
     e.preventDefault();
+    if (!token || !profile || !editing) return;
+    setConfirm({ type: "save" });
+  }
+
+  async function performSave() {
     if (!token || !profile || !editing) return;
     setSaving(true);
     try {
@@ -99,12 +115,26 @@ export default function AdminUsersPage() {
         display_name: editName.trim(),
       });
       toast.success("User updated");
+      setConfirm(null);
       setEditing(null);
       await loadUsers(profile, { page, q: debouncedQ, role: roleFilter });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update user");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleConfirm() {
+    if (!confirm) return;
+    if (confirm.type === "edit") {
+      const user = confirm.user;
+      setConfirm(null);
+      fillEditForm(user);
+      return;
+    }
+    if (confirm.type === "save") {
+      await performSave();
     }
   }
 
@@ -233,7 +263,7 @@ export default function AdminUsersPage() {
                     </span>
                   </AdminTd>
                   <AdminTd>
-                    <ActionIconButton label="Edit user" onClick={() => openEdit(user)}>
+                    <ActionIconButton label="Edit user" onClick={() => requestEdit(user)}>
                       <PencilIcon />
                     </ActionIconButton>
                   </AdminTd>
@@ -296,6 +326,33 @@ export default function AdminUsersPage() {
           </form>
         ) : null}
       </Modal>
+
+      <ConfirmModal
+        open={confirm?.type === "edit"}
+        title="Edit this user?"
+        description={
+          confirm?.type === "edit"
+            ? `Open ${confirm.user.display_name} (${confirm.user.email}) to update their name or role.`
+            : ""
+        }
+        confirmLabel="Continue to edit"
+        onCancel={() => setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
+
+      <ConfirmModal
+        open={confirm?.type === "save"}
+        title="Save user changes?"
+        description={
+          editing
+            ? `Update ${editing.display_name} to role “${editRole}” with the new display name.`
+            : "Save the selected user changes."
+        }
+        confirmLabel="Save changes"
+        loading={saving}
+        onCancel={() => !saving && setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }

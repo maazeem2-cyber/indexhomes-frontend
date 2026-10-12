@@ -13,6 +13,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@/components/icons";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { Modal } from "@/components/Modal";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
@@ -22,6 +23,12 @@ import { api, formatGbp, type PaginationMeta, type Plot, type Profile } from "@/
 import { getAccessToken, getProfile } from "@/lib/auth";
 
 const PAGE_SIZE = 20;
+
+type ConfirmState =
+  | { type: "edit"; plot: Plot }
+  | { type: "save" }
+  | { type: "delete"; plot: Plot }
+  | null;
 
 type FormState = {
   name: string;
@@ -69,6 +76,8 @@ export default function AdminPlotsPage() {
   const [debouncedQ, setDebouncedQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const token = typeof window !== "undefined" ? getAccessToken() : null;
 
@@ -131,7 +140,7 @@ export default function AdminPlotsPage() {
     setModalOpen(true);
   }
 
-  function openEdit(plot: Plot) {
+  function fillEditForm(plot: Plot) {
     setEditingId(plot.id);
     setForm({
       name: plot.name,
@@ -148,6 +157,14 @@ export default function AdminPlotsPage() {
     setModalOpen(true);
   }
 
+  function requestEdit(plot: Plot) {
+    setConfirm({ type: "edit", plot });
+  }
+
+  function requestDelete(plot: Plot) {
+    setConfirm({ type: "delete", plot });
+  }
+
   function closeModal(force = false) {
     if (saving && !force) return;
     setModalOpen(false);
@@ -157,14 +174,18 @@ export default function AdminPlotsPage() {
     setExistingImage(null);
   }
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!token || !profile || profile.role !== "admin") return;
     if (!editingId && !form.image) {
       toast.error("Please upload a plot image");
       return;
     }
+    setConfirm({ type: "save" });
+  }
 
+  async function performSave() {
+    if (!token || !profile || profile.role !== "admin") return;
     setSaving(true);
     try {
       const payload = {
@@ -184,6 +205,7 @@ export default function AdminPlotsPage() {
         await api.adminCreatePlot(token, payload);
         toast.success("Plot published");
       }
+      setConfirm(null);
       closeModal(true);
       await loadPlots(profile, { page, q: debouncedQ, status: statusFilter });
     } catch (err) {
@@ -193,16 +215,37 @@ export default function AdminPlotsPage() {
     }
   }
 
-  async function onDelete(id: string) {
+  async function performDelete(plot: Plot) {
     if (!token || !profile) return;
-    if (!window.confirm("Delete this plot permanently?")) return;
+    setDeleting(true);
     try {
-      await api.adminDeletePlot(token, id);
+      await api.adminDeletePlot(token, plot.id);
       toast.success("Plot deleted");
-      if (editingId === id) closeModal();
+      setConfirm(null);
+      if (editingId === plot.id) closeModal(true);
       await loadPlots(profile, { page, q: debouncedQ, status: statusFilter });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not delete plot");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleConfirm() {
+    if (!confirm) return;
+    if (confirm.type === "edit") {
+      const plot = confirm.plot;
+      setConfirm(null);
+      setViewPlot(null);
+      fillEditForm(plot);
+      return;
+    }
+    if (confirm.type === "save") {
+      await performSave();
+      return;
+    }
+    if (confirm.type === "delete") {
+      await performDelete(confirm.plot);
     }
   }
 
@@ -358,7 +401,7 @@ export default function AdminPlotsPage() {
                     >
                       <EyeIcon />
                     </ActionIconButton>
-                    <ActionIconButton label="Edit" onClick={() => openEdit(plot)}>
+                    <ActionIconButton label="Edit" onClick={() => requestEdit(plot)}>
                       <PencilIcon />
                     </ActionIconButton>
                     <ActionIconButton
@@ -370,7 +413,7 @@ export default function AdminPlotsPage() {
                     <ActionIconButton
                       label="Delete"
                       tone="danger"
-                      onClick={() => onDelete(plot.id)}
+                      onClick={() => requestDelete(plot)}
                     >
                       <TrashIcon />
                     </ActionIconButton>
@@ -388,7 +431,7 @@ export default function AdminPlotsPage() {
 
       <Modal
         open={modalOpen}
-        onClose={closeModal}
+        onClose={() => closeModal()}
         wide
         title={editingId ? "Edit plot" : "New plot"}
         description={
@@ -486,7 +529,7 @@ export default function AdminPlotsPage() {
           ) : null}
 
           <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>
+            <Button type="button" variant="ghost" onClick={() => closeModal()} disabled={saving}>
               Cancel
             </Button>
             <Button type="submit" loading={saving} icon={<PlusIcon />}>
@@ -534,11 +577,7 @@ export default function AdminPlotsPage() {
                 variant="ghost"
                 icon={<PencilIcon />}
                 iconPosition="left"
-                onClick={() => {
-                  const p = viewPlot;
-                  setViewPlot(null);
-                  openEdit(p);
-                }}
+                onClick={() => requestEdit(viewPlot)}
               >
                 Edit
               </Button>
@@ -549,6 +588,48 @@ export default function AdminPlotsPage() {
           </div>
         ) : null}
       </Modal>
+
+      <ConfirmModal
+        open={confirm?.type === "edit"}
+        title="Edit this plot?"
+        description={
+          confirm?.type === "edit"
+            ? `Open “${confirm.plot.name}” in the editor so you can update details, pricing, or the image.`
+            : ""
+        }
+        confirmLabel="Continue to edit"
+        onCancel={() => setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
+
+      <ConfirmModal
+        open={confirm?.type === "save"}
+        title={editingId ? "Save plot changes?" : "Publish this plot?"}
+        description={
+          editingId
+            ? "Your updates will go live on the marketplace immediately, including any new image."
+            : "This listing will appear in inventory with the details and image you entered."
+        }
+        confirmLabel={editingId ? "Save changes" : "Publish plot"}
+        loading={saving}
+        onCancel={() => !saving && setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
+
+      <ConfirmModal
+        open={confirm?.type === "delete"}
+        title="Delete this plot?"
+        description={
+          confirm?.type === "delete"
+            ? `“${confirm.plot.name}” will be removed permanently. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete plot"
+        tone="danger"
+        loading={deleting}
+        onCancel={() => !deleting && setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }
