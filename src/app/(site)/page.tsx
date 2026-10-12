@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { ButtonLink } from "@/components/Button";
+import { FaqSection } from "@/components/FaqSection";
 import { HeroVisual } from "@/components/HeroVisual";
 import { IndexPanel } from "@/components/IndexPanel";
 import { PlotCard } from "@/components/PlotCard";
@@ -101,22 +102,27 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const [idx, plotRes] = await Promise.all([
-          api.getIndex(),
-          api.getPlots({ status: "available" }),
-        ]);
-        if (cancelled) return;
-        setIndex(idx);
-        setPlots(plotRes.plots);
-        setError(null);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load platform data");
-        }
-      } finally {
-        if (!cancelled) setReady(true);
-      }
+      const [idxResult, plotResult] = await Promise.allSettled([
+        api.getIndex(),
+        api.getPlots({ status: "available" }),
+      ]);
+      if (cancelled) return;
+
+      if (idxResult.status === "fulfilled") setIndex(idxResult.value);
+      if (plotResult.status === "fulfilled") setPlots(plotResult.value.plots);
+
+      const firstError =
+        (idxResult.status === "rejected" && idxResult.reason) ||
+        (plotResult.status === "rejected" && plotResult.reason) ||
+        null;
+      setError(
+        firstError
+          ? firstError instanceof Error
+            ? firstError.message
+            : "Could not load platform data"
+          : null
+      );
+      setReady(true);
     })();
     return () => {
       cancelled = true;
@@ -172,7 +178,11 @@ export default function HomePage() {
             ))}
           </div>
 
-          {error ? <p className="mt-4 text-xs text-gold/90">{error}</p> : null}
+          {error ? (
+            <p className="mt-4 text-xs text-white/45">
+              Live index data is temporarily unavailable. Showing the starting index of 10.0.
+            </p>
+          ) : null}
 
           {index ? (
             <div className="mt-8 max-w-xl">
@@ -182,7 +192,7 @@ export default function HomePage() {
         </FadeIn>
 
         <div className="pb-10 sm:pb-8 lg:pb-4">
-          {index ? <HeroVisual index={index} /> : null}
+          <HeroVisual index={index} />
         </div>
       </section>
 
@@ -276,22 +286,37 @@ export default function HomePage() {
                 Browse live inventory priced against the shared platform index.
               </p>
             </div>
-            <Link href="/plots" className="text-sm text-teal-soft transition hover:text-white">
+            <ButtonLink href="/plots" variant="ghost" icon={<ArrowRightIcon />} className="!px-4 !py-2.5">
               View all
-            </Link>
+            </ButtonLink>
           </div>
         </FadeIn>
 
         {plots.length ? (
-          <div className="plot-grid">
-            {plots.slice(0, 8).map((plot, i) => (
-              <PlotCard key={plot.id} plot={plot} delay={i * 0.05} />
-            ))}
-          </div>
+          <>
+            <div className="plot-grid">
+              {plots.slice(0, 4).map((plot, i) => (
+                <PlotCard key={plot.id} plot={plot} delay={i * 0.05} />
+              ))}
+            </div>
+            {plots.length > 4 ? (
+              <div className="flex justify-center pt-2">
+                <ButtonLink href="/plots" icon={<ArrowRightIcon />}>
+                  View all plots
+                </ButtonLink>
+              </div>
+            ) : null}
+          </>
         ) : (
-          <div className="glass rounded-2xl p-6 text-sm text-mist">No available plots yet.</div>
+          <div className="glass rounded-2xl p-6 text-sm text-mist">
+            {error
+              ? "Plot listings are temporarily unavailable. Please try again shortly."
+              : "No available plots yet."}
+          </div>
         )}
       </section>
+
+      <FaqSection />
 
       <section id="feedback" className="full-bleed relative overflow-hidden border-y border-white/10">
         <div

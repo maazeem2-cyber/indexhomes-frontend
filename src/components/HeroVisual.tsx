@@ -4,8 +4,17 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import type { PlatformIndex } from "@/lib/api";
 
-export function HeroVisual({ index }: { index: PlatformIndex }) {
-  const rising = Number(index.current_index) >= Number(index.starting_index);
+const FALLBACK_INDEX: PlatformIndex = {
+  starting_index: 10,
+  current_index: 10,
+  total_platform_value: 0,
+  total_units_issued: 0,
+  updated_at: new Date(0).toISOString(),
+};
+
+export function HeroVisual({ index }: { index?: PlatformIndex | null }) {
+  const live = index ?? FALLBACK_INDEX;
+  const rising = Number(live.current_index) >= Number(live.starting_index);
 
   return (
     <motion.div
@@ -17,7 +26,7 @@ export function HeroVisual({ index }: { index: PlatformIndex }) {
       <div className="animate-aurora absolute inset-0 -z-10 rounded-[2.5rem] bg-aurora-band bg-[length:200%_200%] opacity-35 blur-2xl" />
 
       <div className="animate-float-slow rounded-[2.25rem] glass p-3 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.55)]">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem]">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem] bg-[#0a1628]">
           <Image
             src="/images/hero-property.jpg"
             alt="IndexHomes virtual property — premium UK home"
@@ -52,15 +61,18 @@ export function HeroVisual({ index }: { index: PlatformIndex }) {
               </span>
             </div>
             <p className="mt-2 font-display text-base font-semibold leading-none text-white">
-              {Number(index.current_index).toFixed(1)}
+              {Number(live.current_index).toFixed(1)}
             </p>
             <p className="mt-2 text-[11px] font-medium tracking-wide text-white/45">
-              {rising ? "Steady · tracking paid sales" : "Below start · building"}
+              {index
+                ? rising
+                  ? "Steady · tracking paid sales"
+                  : "Below start · building"
+                : "Starting index · 10.0"}
             </p>
           </div>
         </div>
       </div>
-
     </motion.div>
   );
 }

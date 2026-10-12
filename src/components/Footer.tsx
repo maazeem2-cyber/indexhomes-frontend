@@ -4,6 +4,8 @@ import { Logo } from "@/components/Logo";
 
 const explore = [
   { href: "/plots", label: "Browse plots" },
+  { href: "/community", label: "Community & Events" },
+  { href: "/#faq", label: "FAQ" },
   { href: "/signup", label: "Get started" },
   { href: "/login", label: "Sign in" },
 ];
@@ -11,6 +13,8 @@ const explore = [
 const product = [
   { href: "/#index", label: "Platform index" },
   { href: "/plots", label: "Available inventory" },
+  { href: "/community", label: "Seminars & updates" },
+  { href: "/#faq", label: "FAQ" },
   { href: "/dashboard", label: "Buyer portfolio" },
 ];
 

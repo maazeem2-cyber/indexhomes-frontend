@@ -21,9 +21,8 @@ export const metadata: Metadata = {
     "Buy virtual plots against a unified live price index. Secure ownership records, Stripe payments, and role-based dashboards.",
   icons: {
     icon: [
-      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/images/brand/favicon-mark.png", type: "image/png", sizes: "256x256" },
+      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
     ],
     apple: [{ url: "/images/brand/favicon-mark.png", sizes: "180x180" }],
   },

@@ -52,8 +52,19 @@ async function request<T>(
   };
   if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-  const json = (await res.json()) as ApiSuccess<T> | ApiFail;
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch {
+    throw new Error("Could not reach the IndexHomes API. Check that the backend is running.");
+  }
+
+  let json: ApiSuccess<T> | ApiFail;
+  try {
+    json = (await res.json()) as ApiSuccess<T> | ApiFail;
+  } catch {
+    throw new Error(`Request failed (${res.status})`);
+  }
 
   if (!res.ok || !json.success) {
     const message = !json.success ? json.error.message : `Request failed (${res.status})`;

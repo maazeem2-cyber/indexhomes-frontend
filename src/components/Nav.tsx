@@ -8,7 +8,11 @@ import { Logo } from "@/components/Logo";
 import { clearAuth, getProfile } from "@/lib/auth";
 import type { Profile } from "@/lib/api";
 
-const links = [{ href: "/plots", label: "Plots" }];
+const links = [
+  { href: "/plots", label: "Plots" },
+  { href: "/community", label: "Community" },
+  { href: "/#faq", label: "FAQ" },
+];
 
 export function Nav() {
   const [profile, setProfile] = useState<Profile | null>(null);
