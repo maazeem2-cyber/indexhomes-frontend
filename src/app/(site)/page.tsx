@@ -104,7 +104,7 @@ export default function HomePage() {
     (async () => {
       const [idxResult, plotResult] = await Promise.allSettled([
         api.getIndex(),
-        api.getPlots({ status: "available" }),
+        api.getPlots({ status: "available", page: 1, limit: 4 }),
       ]);
       if (cancelled) return;
 

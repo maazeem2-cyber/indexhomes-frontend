@@ -42,3 +42,8 @@ export function getProfile(): Profile | null {
 export function getAccessToken(): string | null {
   return getSession()?.access_token || null;
 }
+
+export function updateStoredProfile(profile: Profile) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}

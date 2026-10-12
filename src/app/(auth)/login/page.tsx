@@ -76,7 +76,7 @@ export default function LoginPage() {
       </form>
 
       <div className="row-between">
-        <span className="text-white/35">Forgot password?</span>
+        <Link href="/forgot-password">Forgot password?</Link>
         <Link href="/signup">Create an account</Link>
       </div>
     </div>
