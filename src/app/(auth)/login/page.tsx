@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { LogInIcon } from "@/components/icons";
 import { AuthLogo } from "@/components/Logo";
@@ -14,6 +14,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("expired") === "1") {
+      toast.info("Your session expired. Please sign in again.");
+    }
+  }, [toast]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

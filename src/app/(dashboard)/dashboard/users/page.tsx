@@ -4,7 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { AdminTable, AdminTd, ActionIconButton, StatusPill } from "@/components/AdminTable";
 import { Button, ButtonLink } from "@/components/Button";
 import { FadeIn } from "@/components/FadeIn";
-import { ArrowRightIcon, LogInIcon, PencilIcon } from "@/components/icons";
+import {
+  ArrowRightIcon,
+  BanIcon,
+  CheckCircleIcon,
+  LogInIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@/components/icons";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { Modal } from "@/components/Modal";
 import { Pagination } from "@/components/Pagination";
@@ -15,16 +22,24 @@ import { api, type AdminUser, type PaginationMeta, type Profile } from "@/lib/ap
 import { getAccessToken, getProfile } from "@/lib/auth";
 
 const PAGE_SIZE = 20;
+const SUPER_ADMIN_EMAIL = "maazeem2@icloud.com";
 
 type ConfirmState =
   | { type: "edit"; user: AdminUser }
   | { type: "save" }
+  | { type: "deactivate"; user: AdminUser }
+  | { type: "activate"; user: AdminUser }
+  | { type: "delete"; user: AdminUser }
   | null;
 
 function roleTone(role: AdminUser["role"]) {
   if (role === "admin") return "warn" as const;
   if (role === "seller") return "info" as const;
   return "success" as const;
+}
+
+function isSuperAdmin(user: Pick<AdminUser, "email">) {
+  return user.email.trim().toLowerCase() === SUPER_ADMIN_EMAIL;
 }
 
 export default function AdminUsersPage() {
@@ -35,6 +50,7 @@ export default function AdminUsersPage() {
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [acting, setActing] = useState(false);
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -110,10 +126,16 @@ export default function AdminUsersPage() {
     if (!token || !profile || !editing) return;
     setSaving(true);
     try {
-      await api.adminUpdateUser(token, editing.id, {
-        role: editRole,
+      const payload: {
+        role?: "buyer" | "seller" | "admin";
+        display_name: string;
+      } = {
         display_name: editName.trim(),
-      });
+      };
+      if (!isSuperAdmin(editing)) {
+        payload.role = editRole;
+      }
+      await api.adminUpdateUser(token, editing.id, payload);
       toast.success("User updated");
       setConfirm(null);
       setEditing(null);
@@ -122,6 +144,36 @@ export default function AdminUsersPage() {
       toast.error(err instanceof Error ? err.message : "Could not update user");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function performToggleActive(user: AdminUser, nextActive: boolean) {
+    if (!token || !profile) return;
+    setActing(true);
+    try {
+      await api.adminUpdateUser(token, user.id, { is_active: nextActive });
+      toast.success(nextActive ? "User reactivated" : "User deactivated");
+      setConfirm(null);
+      await loadUsers(profile, { page, q: debouncedQ, role: roleFilter });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update account status");
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function performDelete(user: AdminUser) {
+    if (!token || !profile) return;
+    setActing(true);
+    try {
+      await api.adminDeleteUser(token, user.id);
+      toast.success("User deleted");
+      setConfirm(null);
+      await loadUsers(profile, { page, q: debouncedQ, role: roleFilter });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete user");
+    } finally {
+      setActing(false);
     }
   }
 
@@ -135,6 +187,18 @@ export default function AdminUsersPage() {
     }
     if (confirm.type === "save") {
       await performSave();
+      return;
+    }
+    if (confirm.type === "deactivate") {
+      await performToggleActive(confirm.user, false);
+      return;
+    }
+    if (confirm.type === "activate") {
+      await performToggleActive(confirm.user, true);
+      return;
+    }
+    if (confirm.type === "delete") {
+      await performDelete(confirm.user);
     }
   }
 
@@ -166,6 +230,8 @@ export default function AdminUsersPage() {
     );
   }
 
+  const confirmBusy = saving || acting;
+
   return (
     <div className="space-y-6">
       <FadeIn>
@@ -177,8 +243,8 @@ export default function AdminUsersPage() {
             User <span className="text-aurora">management</span>
           </h1>
           <p className="mt-2 text-sm text-mist">
-            Review accounts in a clean table. Update roles and display names without leaving the
-            page.
+            Review accounts in a clean table. Update roles, deactivate access, or remove unused
+            accounts.
           </p>
         </div>
       </FadeIn>
@@ -220,7 +286,7 @@ export default function AdminUsersPage() {
         ) : (
           <>
             <AdminTable
-              columns={["User", "Email", "Role", "Verified", "Joined", "Actions"]}
+              columns={["User", "Email", "Role", "Status", "Verified", "Joined", "Actions"]}
               empty={
                 !users.length ? (
                   <div className="px-5 py-10 text-center text-sm text-mist">
@@ -229,46 +295,89 @@ export default function AdminUsersPage() {
                 ) : null
               }
             >
-              {users.map((user) => (
-                <tr key={user.id} className="transition hover:bg-white/[0.03]">
-                  <AdminTd>
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-teal/30 to-gold/20 text-xs font-semibold text-white">
-                        {user.display_name.slice(0, 1).toUpperCase()}
+              {users.map((user) => {
+                const superAdmin = isSuperAdmin(user);
+                const active = user.is_active !== false;
+                return (
+                  <tr key={user.id} className="transition hover:bg-white/[0.03]">
+                    <AdminTd>
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-teal/30 to-gold/20 text-xs font-semibold text-white">
+                          {user.display_name.slice(0, 1).toUpperCase()}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-white">{user.display_name}</p>
+                          {superAdmin ? (
+                            <p className="text-[11px] font-medium uppercase tracking-wider text-gold/80">
+                              Super admin
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </AdminTd>
+                    <AdminTd>
+                      <span className="text-white/75">{user.email}</span>
+                    </AdminTd>
+                    <AdminTd>
+                      <StatusPill value={user.role} tone={roleTone(user.role)} />
+                    </AdminTd>
+                    <AdminTd>
+                      <StatusPill
+                        value={active ? "Active" : "Inactive"}
+                        tone={active ? "success" : "danger"}
+                      />
+                    </AdminTd>
+                    <AdminTd>
+                      <StatusPill
+                        value={user.email_verified ? "Verified" : "Pending"}
+                        tone={user.email_verified ? "success" : "warn"}
+                      />
+                    </AdminTd>
+                    <AdminTd>
+                      <span className="whitespace-nowrap text-white/60">
+                        {user.created_at
+                          ? new Date(user.created_at).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
                       </span>
-                      <span className="font-medium text-white">{user.display_name}</span>
-                    </div>
-                  </AdminTd>
-                  <AdminTd>
-                    <span className="text-white/75">{user.email}</span>
-                  </AdminTd>
-                  <AdminTd>
-                    <StatusPill value={user.role} tone={roleTone(user.role)} />
-                  </AdminTd>
-                  <AdminTd>
-                    <StatusPill
-                      value={user.email_verified ? "Verified" : "Pending"}
-                      tone={user.email_verified ? "success" : "warn"}
-                    />
-                  </AdminTd>
-                  <AdminTd>
-                    <span className="whitespace-nowrap text-white/60">
-                      {user.created_at
-                        ? new Date(user.created_at).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "—"}
-                    </span>
-                  </AdminTd>
-                  <AdminTd>
-                    <ActionIconButton label="Edit user" onClick={() => requestEdit(user)}>
-                      <PencilIcon />
-                    </ActionIconButton>
-                  </AdminTd>
-                </tr>
-              ))}
+                    </AdminTd>
+                    <AdminTd>
+                      <div className="flex items-center gap-1.5">
+                        <ActionIconButton
+                          label={superAdmin ? "Edit display name" : "Edit user"}
+                          onClick={() => requestEdit(user)}
+                        >
+                          <PencilIcon />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label={active ? "Deactivate user" : "Reactivate user"}
+                          tone={active ? "danger" : "accent"}
+                          disabled={superAdmin || user.id === profile.id}
+                          onClick={() =>
+                            setConfirm({
+                              type: active ? "deactivate" : "activate",
+                              user,
+                            })
+                          }
+                        >
+                          {active ? <BanIcon /> : <CheckCircleIcon />}
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Delete user"
+                          tone="danger"
+                          disabled={superAdmin || user.id === profile.id}
+                          onClick={() => setConfirm({ type: "delete", user })}
+                        >
+                          <TrashIcon />
+                        </ActionIconButton>
+                      </div>
+                    </AdminTd>
+                  </tr>
+                );
+              })}
             </AdminTable>
             <div className="mt-4">
               <Pagination meta={pagination} onPageChange={setPage} />
@@ -300,21 +409,33 @@ export default function AdminUsersPage() {
               <span className="text-xs font-medium uppercase tracking-wider text-white/50">
                 Role
               </span>
-              <Select
-                value={editRole}
-                onChange={(e) =>
-                  setEditRole(e.target.value as "buyer" | "seller" | "admin")
-                }
-                options={[
-                  { value: "buyer", label: "Buyer" },
-                  { value: "seller", label: "Seller" },
-                  { value: "admin", label: "Admin" },
-                ]}
-              />
+              {isSuperAdmin(editing) ? (
+                <>
+                  <div className="glass-input flex items-center text-white/70">Admin (locked)</div>
+                  <p className="text-xs leading-relaxed text-gold/80">
+                    Super admin role cannot be changed.
+                  </p>
+                </>
+              ) : (
+                <Select
+                  value={editRole}
+                  onChange={(e) =>
+                    setEditRole(e.target.value as "buyer" | "seller" | "admin")
+                  }
+                  options={[
+                    { value: "buyer", label: "Buyer" },
+                    { value: "seller", label: "Seller" },
+                    { value: "admin", label: "Admin" },
+                  ]}
+                />
+              )}
             </label>
-            <p className="text-xs leading-relaxed text-white/45">
-              One role per account. Promoting someone to admin gives full inventory and user access.
-            </p>
+            {!isSuperAdmin(editing) ? (
+              <p className="text-xs leading-relaxed text-white/45">
+                One role per account. Promoting someone to admin gives full inventory and user
+                access.
+              </p>
+            ) : null}
             <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
               <Button type="button" variant="ghost" disabled={saving} onClick={() => setEditing(null)}>
                 Cancel
@@ -332,7 +453,9 @@ export default function AdminUsersPage() {
         title="Edit this user?"
         description={
           confirm?.type === "edit"
-            ? `Open ${confirm.user.display_name} (${confirm.user.email}) to update their name or role.`
+            ? isSuperAdmin(confirm.user)
+              ? `Open ${confirm.user.display_name} to update their display name. Role stays locked as super admin.`
+              : `Open ${confirm.user.display_name} (${confirm.user.email}) to update their name or role.`
             : ""
         }
         confirmLabel="Continue to edit"
@@ -345,12 +468,58 @@ export default function AdminUsersPage() {
         title="Save user changes?"
         description={
           editing
-            ? `Update ${editing.display_name} to role “${editRole}” with the new display name.`
+            ? isSuperAdmin(editing)
+              ? `Update display name for ${editing.display_name}. Role remains admin.`
+              : `Update ${editing.display_name} to role “${editRole}” with the new display name.`
             : "Save the selected user changes."
         }
         confirmLabel="Save changes"
         loading={saving}
         onCancel={() => !saving && setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
+
+      <ConfirmModal
+        open={confirm?.type === "deactivate"}
+        title="Deactivate this user?"
+        description={
+          confirm?.type === "deactivate"
+            ? `${confirm.user.display_name} (${confirm.user.email}) will be blocked from signing in. You can reactivate them later.`
+            : ""
+        }
+        confirmLabel="Deactivate"
+        tone="danger"
+        loading={acting}
+        onCancel={() => !confirmBusy && setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
+
+      <ConfirmModal
+        open={confirm?.type === "activate"}
+        title="Reactivate this user?"
+        description={
+          confirm?.type === "activate"
+            ? `${confirm.user.display_name} (${confirm.user.email}) will be able to sign in again.`
+            : ""
+        }
+        confirmLabel="Reactivate"
+        loading={acting}
+        onCancel={() => !confirmBusy && setConfirm(null)}
+        onConfirm={handleConfirm}
+      />
+
+      <ConfirmModal
+        open={confirm?.type === "delete"}
+        title="Delete this user?"
+        description={
+          confirm?.type === "delete"
+            ? `Permanently remove ${confirm.user.display_name} (${confirm.user.email}). Users with purchase history cannot be deleted — deactivate them instead.`
+            : ""
+        }
+        confirmLabel="Delete user"
+        tone="danger"
+        loading={acting}
+        onCancel={() => !confirmBusy && setConfirm(null)}
         onConfirm={handleConfirm}
       />
     </div>

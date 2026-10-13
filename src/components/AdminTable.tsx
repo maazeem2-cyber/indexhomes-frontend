@@ -77,12 +77,14 @@ export function ActionIconButton({
   onClick,
   href,
   tone = "default",
+  disabled = false,
   children,
 }: {
   label: string;
   onClick?: () => void;
   href?: string;
   tone?: "default" | "danger" | "accent";
+  disabled?: boolean;
   children: ReactNode;
 }) {
   const tones = {
@@ -90,9 +92,9 @@ export function ActionIconButton({
     accent: "text-teal-soft hover:bg-teal/15 hover:text-teal-soft",
     danger: "text-rose-300/90 hover:bg-rose-400/15 hover:text-rose-200",
   };
-  const className = `inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] transition ${tones[tone]}`;
+  const className = `inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] transition ${tones[tone]} disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white/[0.03]`;
 
-  if (href) {
+  if (href && !disabled) {
     return (
       <a href={href} aria-label={label} title={label} className={className}>
         {children}
@@ -101,7 +103,14 @@ export function ActionIconButton({
   }
 
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className={className}>
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
+    >
       {children}
     </button>
   );

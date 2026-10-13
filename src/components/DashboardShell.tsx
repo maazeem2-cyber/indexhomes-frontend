@@ -12,7 +12,7 @@ import {
   UsersIcon,
 } from "@/components/icons";
 import { Logo } from "@/components/Logo";
-import { clearAuth, getProfile } from "@/lib/auth";
+import { clearAuth, getProfile, getSession, logoutToLogin } from "@/lib/auth";
 import type { Profile } from "@/lib/api";
 
 type NavItem = {
@@ -94,7 +94,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    setProfile(getProfile());
+    const session = getSession();
+    const stored = getProfile();
+    if (!session?.access_token || !stored) {
+      logoutToLogin(stored ? "expired" : "required");
+      return;
+    }
+    setProfile(stored);
   }, [pathname]);
 
   useEffect(() => {

@@ -1,4 +1,97 @@
+import {
+  getProfile,
+  getSession,
+  isAccessTokenExpiring,
+  logoutToLogin,
+  saveAuth,
+  updateStoredSession,
+} from "./auth";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+
+const AUTH_SKIP_RECOVERY = new Set([
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+]);
+
+let refreshInFlight: Promise<Session | null> | null = null;
+
+function errorMessageFrom(json: ApiSuccess<unknown> | ApiFail | null, status: number) {
+  if (json && !json.success) return json.error.message;
+  return `Request failed (${status})`;
+}
+
+function isInvalidSessionError(status: number, message: string, hadToken: boolean) {
+  if (status !== 401 || !hadToken) return false;
+  const msg = message.toLowerCase();
+  if (msg.includes("current password")) return false;
+  return (
+    msg.includes("invalid or expired token") ||
+    msg.includes("authentication required") ||
+    (msg.includes("token") && msg.includes("expired")) ||
+    msg.includes("jwt")
+  );
+}
+
+function endSessionAndWait(): Promise<never> {
+  logoutToLogin("expired");
+  return new Promise(() => {});
+}
+
+async function refreshAccessToken(): Promise<Session | null> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    const current = getSession();
+    if (!current?.refresh_token) return null;
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: current.refresh_token }),
+      });
+      const json = (await res.json()) as ApiSuccess<{ session: Session }> | ApiFail;
+      if (!res.ok || !json.success) return null;
+      const session = json.data.session;
+      const profile = getProfile();
+      if (profile) saveAuth(session, profile);
+      else updateStoredSession(session);
+      return session;
+    } catch {
+      return null;
+    }
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+
+  return refreshInFlight;
+}
+
+async function resolveToken(token?: string | null, path?: string) {
+  if (!token || (path && AUTH_SKIP_RECOVERY.has(path))) return token || null;
+  const session = getSession();
+  if (isAccessTokenExpiring(session)) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return refreshed.access_token;
+    return null;
+  }
+  return session?.access_token || token;
+}
+
+async function recoverFrom401<T>(
+  path: string,
+  hadToken: boolean,
+  retried: boolean,
+  retry: (token: string) => Promise<T>
+): Promise<T | null> {
+  if (retried || AUTH_SKIP_RECOVERY.has(path) || !hadToken) return null;
+  const refreshed = await refreshAccessToken();
+  if (refreshed) return retry(refreshed.access_token);
+  return endSessionAndWait();
+}
 
 export type Session = {
   access_token: string;
@@ -13,6 +106,7 @@ export type Profile = {
   display_name: string;
   role: "buyer" | "seller" | "admin";
   email_verified: boolean;
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -77,30 +171,39 @@ export type ListParams = {
 type ApiSuccess<T> = { success: true; data: T };
 type ApiFail = { success: false; error: { message: string; code?: string } };
 
-async function parseJson<T>(res: Response): Promise<T> {
-  let json: ApiSuccess<T> | ApiFail;
+function routePath(path: string) {
+  return path.split("?")[0];
+}
+
+async function parseBody<T>(res: Response): Promise<ApiSuccess<T> | ApiFail | null> {
   try {
-    json = (await res.json()) as ApiSuccess<T> | ApiFail;
+    return (await res.json()) as ApiSuccess<T> | ApiFail;
   } catch {
-    throw new Error(`Request failed (${res.status})`);
+    return null;
   }
-  if (!res.ok || !json.success) {
-    const message = !json.success ? json.error.message : `Request failed (${res.status})`;
-    throw new Error(message);
-  }
+}
+
+function unwrapData<T>(res: Response, json: ApiSuccess<T> | ApiFail | null): T {
+  if (!json) throw new Error(`Request failed (${res.status})`);
+  if (!res.ok || !json.success) throw new Error(errorMessageFrom(json, res.status));
   return json.data;
 }
 
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  token?: string | null
+  token?: string | null,
+  retried = false
 ): Promise<T> {
+  const hadToken = Boolean(token);
+  const resolved = await resolveToken(token, routePath(path));
+  if (hadToken && !resolved) return endSessionAndWait();
+
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
-  if (token) (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+  if (resolved) (headers as Record<string, string>)["Authorization"] = `Bearer ${resolved}`;
 
   let res: Response;
   try {
@@ -109,7 +212,16 @@ async function request<T>(
     throw new Error("Could not reach the IndexHomes API. Check that the backend is running.");
   }
 
-  return parseJson<T>(res);
+  const json = await parseBody<T>(res);
+  const message = errorMessageFrom(json, res.status);
+  if (isInvalidSessionError(res.status, message, hadToken)) {
+    const recovered = await recoverFrom401(routePath(path), hadToken, retried, (nextToken) =>
+      request<T>(path, options, nextToken, true)
+    );
+    if (recovered !== null) return recovered;
+  }
+
+  return unwrapData(res, json);
 }
 
 function toFormData(input: Partial<PlotInput>, { requireCore = true } = {}) {
@@ -139,19 +251,33 @@ async function formRequest<T>(
   path: string,
   method: "POST" | "PATCH",
   form: FormData,
-  token: string
+  token: string,
+  retried = false
 ): Promise<T> {
+  const resolved = await resolveToken(token, routePath(path));
+  if (!resolved) return endSessionAndWait();
+
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${resolved}` },
       body: form,
     });
   } catch {
     throw new Error("Could not reach the IndexHomes API. Check that the backend is running.");
   }
-  return parseJson<T>(res);
+
+  const json = await parseBody<T>(res);
+  const message = errorMessageFrom(json, res.status);
+  if (isInvalidSessionError(res.status, message, true)) {
+    const recovered = await recoverFrom401(routePath(path), true, retried, (nextToken) =>
+      formRequest<T>(path, method, form, nextToken, true)
+    );
+    if (recovered !== null) return recovered;
+  }
+
+  return unwrapData(res, json);
 }
 
 export const api = {
@@ -263,11 +389,17 @@ export const api = {
   adminUpdateUser: (
     token: string,
     id: string,
-    body: { role?: "buyer" | "seller" | "admin"; display_name?: string }
+    body: { role?: "buyer" | "seller" | "admin"; display_name?: string; is_active?: boolean }
   ) =>
     request<{ user: AdminUser }>(
       `/admin/users/${id}`,
       { method: "PATCH", body: JSON.stringify(body) },
+      token
+    ),
+  adminDeleteUser: (token: string, id: string) =>
+    request<{ deleted: boolean; id: string }>(
+      `/admin/users/${id}`,
+      { method: "DELETE" },
       token
     ),
 };
