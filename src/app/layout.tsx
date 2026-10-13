@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
+import { RouteCleanup } from "@/components/RouteCleanup";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en-GB">
       <body className={`${fraunces.variable} ${manrope.variable} antialiased`}>
         <ToastProvider>
+          <RouteCleanup />
           <div className="atmosphere min-h-screen">{children}</div>
         </ToastProvider>
       </body>
