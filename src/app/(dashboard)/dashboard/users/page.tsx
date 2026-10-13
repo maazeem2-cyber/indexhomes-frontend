@@ -16,7 +16,9 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { Modal } from "@/components/Modal";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
-import { PageLoader, Spinner } from "@/components/Spinner";
+import { FilterToolbar } from "@/components/FilterToolbar";
+import { TableSkeleton } from "@/components/Skeleton";
+import { PageLoader } from "@/components/Spinner";
 import { useToast } from "@/components/Toast";
 import { api, type AdminUser, type PaginationMeta, type Profile } from "@/lib/api";
 import { getAccessToken, getProfile } from "@/lib/auth";
@@ -250,39 +252,34 @@ export default function AdminUsersPage() {
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <div className="glass flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:p-4">
-          <input
-            className="glass-input min-w-0 flex-1"
-            placeholder="Search name or email"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <Select
-            className="sm:w-44"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            options={[
-              { value: "all", label: "All roles" },
-              { value: "buyer", label: "Buyer" },
-              { value: "seller", label: "Seller" },
-              { value: "admin", label: "Admin" },
-            ]}
-          />
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-center text-sm text-mist sm:min-w-[7rem]">
-            {loading ? (
-              <Spinner size="sm" />
-            ) : (
-              `${pagination?.total?.toLocaleString("en-GB") ?? users.length} users`
-            )}
-          </div>
-        </div>
+        <FilterToolbar
+          searchValue={q}
+          onSearchChange={setQ}
+          searchLabel="Search users"
+          searchPlaceholder="Name or email address"
+          resultLabel={`${pagination?.total?.toLocaleString("en-GB") ?? users.length} users`}
+          loading={loading}
+          filters={[
+            {
+              id: "role",
+              label: "Role",
+              value: roleFilter,
+              onChange: setRoleFilter,
+              options: [
+                { value: "all", label: "All roles" },
+                { value: "buyer", label: "Buyer" },
+                { value: "seller", label: "Seller" },
+                { value: "admin", label: "Admin" },
+              ],
+              className: "sm:max-w-[12rem]",
+            },
+          ]}
+        />
       </FadeIn>
 
       <FadeIn delay={0.08}>
         {loading && !users.length ? (
-          <div className="glass flex items-center justify-center gap-2 rounded-2xl p-10 text-sm text-mist">
-            <Spinner size="sm" /> Loading users…
-          </div>
+          <TableSkeleton rows={5} />
         ) : (
           <>
             <AdminTable

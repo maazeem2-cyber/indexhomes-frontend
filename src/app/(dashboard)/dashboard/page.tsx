@@ -12,6 +12,7 @@ import {
   UserPlusIcon,
   UsersIcon,
 } from "@/components/icons";
+import { MetricGridSkeleton } from "@/components/Skeleton";
 import { PageLoader } from "@/components/Spinner";
 import { useToast } from "@/components/Toast";
 import { api, formatGbp, type PlatformIndex, type Plot, type Profile } from "@/lib/api";
@@ -29,7 +30,8 @@ export default function DashboardPage() {
     sales: number;
   } | null>(null);
   const [ownedPlots, setOwnedPlots] = useState<Plot[]>([]);
-  const [loadingData, setLoadingData] = useState(false);
+  const [loadingIndex, setLoadingIndex] = useState(false);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
 
   useEffect(() => {
     const p = getProfile();
@@ -37,29 +39,43 @@ export default function DashboardPage() {
     setReady(true);
     if (!p) return;
 
-    setLoadingData(true);
+    const token = getAccessToken();
+    setLoadingIndex(true);
+    if (p.role === "admin" && token) setLoadingMetrics(true);
+
     (async () => {
       try {
-        const idx = await api.getIndex();
+        const indexPromise = api.getIndex();
+        const metricsPromise =
+          p.role === "admin" && token
+            ? api.adminMetrics(token)
+            : Promise.resolve(null);
+        const ownedPromise =
+          p.role === "buyer"
+            ? api.getPlots({ status: "sold" })
+            : Promise.resolve(null);
+
+        const [idx, m, owned] = await Promise.all([
+          indexPromise,
+          metricsPromise,
+          ownedPromise,
+        ]);
+
         setIndex(idx);
-        const token = getAccessToken();
-        if (p.role === "admin" && token) {
-          const m = await api.adminMetrics(token);
-          setMetrics(m);
-        }
-        if (p.role === "buyer") {
-          const owned = await api.getPlots({ status: "sold" });
+        if (m) setMetrics(m);
+        if (owned && p.role === "buyer") {
           setOwnedPlots(owned.plots.filter((plot) => plot.owner_id === p.id));
         }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Could not load dashboard");
       } finally {
-        setLoadingData(false);
+        setLoadingIndex(false);
+        setLoadingMetrics(false);
       }
     })();
   }, [toast]);
 
-  if (!ready || (profile && loadingData && !index)) {
+  if (!ready) {
     return <PageLoader label="Loading dashboard…" />;
   }
 
@@ -115,49 +131,72 @@ export default function DashboardPage() {
         </div>
       </FadeIn>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Current index"
-          value={index ? Number(index.current_index).toFixed(1) : "—"}
-          subtitle="Starts at 10.0"
-          icon={<ChartUpIcon className="h-4 w-4" />}
-          tone="teal"
-        />
-        <MetricCard
-          title="Platform value"
-          value={index ? formatGbp(Number(index.total_platform_value)) : "—"}
-          subtitle="Completed paid sales only"
-          icon={<TagIcon className="h-4 w-4" />}
-          tone="gold"
-        />
-        <MetricCard
-          title="Units issued"
-          value={index ? String(index.total_units_issued) : "—"}
-          subtitle="Owned plots after purchase"
-          icon={<UsersIcon className="h-4 w-4" />}
-          tone="sky"
-        />
-        <MetricCard
-          title="Your role"
-          value={profile.role}
-          subtitle={profile.email}
-          icon={<UserPlusIcon className="h-4 w-4" />}
-          tone="violet"
-        />
-      </div>
-
-      {profile.role === "admin" && metrics ? (
+      {loadingIndex && !index ? (
+        <MetricGridSkeleton />
+      ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard title="Registered users" value={String(metrics.users)} subtitle="All roles" tone="teal" />
           <MetricCard
-            title="Available plots"
-            value={String(metrics.plots_available)}
-            subtitle="Live inventory"
+            title="Current index"
+            value={index ? Number(index.current_index).toFixed(1) : "—"}
+            subtitle="Starts at 10.0"
+            icon={<ChartUpIcon className="h-4 w-4" />}
+            tone="teal"
+          />
+          <MetricCard
+            title="Platform value"
+            value={index ? formatGbp(Number(index.total_platform_value)) : "—"}
+            subtitle="Completed paid sales only"
+            icon={<TagIcon className="h-4 w-4" />}
             tone="gold"
           />
-          <MetricCard title="Sold plots" value={String(metrics.plots_sold)} subtitle="Owned units" tone="sky" />
-          <MetricCard title="Completed sales" value={String(metrics.sales)} subtitle="Paid transactions" tone="violet" />
+          <MetricCard
+            title="Units issued"
+            value={index ? String(index.total_units_issued) : "—"}
+            subtitle="Owned plots after purchase"
+            icon={<UsersIcon className="h-4 w-4" />}
+            tone="sky"
+          />
+          <MetricCard
+            title="Your role"
+            value={profile.role}
+            subtitle={profile.email}
+            icon={<UserPlusIcon className="h-4 w-4" />}
+            tone="violet"
+          />
         </div>
+      )}
+
+      {profile.role === "admin" ? (
+        loadingMetrics && !metrics ? (
+          <MetricGridSkeleton />
+        ) : metrics ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              title="Registered users"
+              value={String(metrics.users)}
+              subtitle="All roles"
+              tone="teal"
+            />
+            <MetricCard
+              title="Available plots"
+              value={String(metrics.plots_available)}
+              subtitle="Live inventory"
+              tone="gold"
+            />
+            <MetricCard
+              title="Sold plots"
+              value={String(metrics.plots_sold)}
+              subtitle="Owned units"
+              tone="sky"
+            />
+            <MetricCard
+              title="Completed sales"
+              value={String(metrics.sales)}
+              subtitle="Paid transactions"
+              tone="violet"
+            />
+          </div>
+        ) : null
       ) : null}
 
       {profile.role === "admin" ? (

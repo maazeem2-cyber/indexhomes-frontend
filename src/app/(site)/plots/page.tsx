@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { FadeIn } from "@/components/FadeIn";
 import { Pagination } from "@/components/Pagination";
 import { PlotCard } from "@/components/PlotCard";
-import { Select } from "@/components/Select";
-import { PageLoader, Spinner } from "@/components/Spinner";
+import { FilterToolbar } from "@/components/FilterToolbar";
+import { PageLoader } from "@/components/Spinner";
 import { api, type PaginationMeta, type PlatformIndex, type Plot } from "@/lib/api";
 
 const PAGE_SIZE = 24;
@@ -94,41 +94,42 @@ export default function PlotsPage() {
       </FadeIn>
 
       <FadeIn delay={0.08}>
-        <div className="glass grid gap-3 rounded-2xl p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-4">
-          <input
-            className="glass-input min-w-0"
-            placeholder="Search name or description"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label="Search plots"
-          />
-          <Select
-            aria-label="Filter by location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            options={[
-              { value: "", label: "All locations" },
-              ...locations.map((loc) => ({ value: loc, label: loc })),
-            ]}
-          />
-          <Select
-            aria-label="Filter by status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            options={[
-              { value: "available", label: "Available" },
-              { value: "reserved", label: "Reserved" },
-              { value: "sold", label: "Sold" },
-              { value: "all", label: "All statuses" },
-            ]}
-          />
-          <div className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-mist">
-            {fetching ? <Spinner size="sm" label="Refreshing plots" /> : null}
-            {ready
+        <FilterToolbar
+          searchValue={q}
+          onSearchChange={setQ}
+          searchLabel="Search plots"
+          searchPlaceholder="Name or description"
+          resultLabel={
+            ready
               ? `${pagination?.total?.toLocaleString("en-GB") ?? plots.length} plots`
-              : "…"}
-          </div>
-        </div>
+              : "Loading…"
+          }
+          loading={fetching}
+          filters={[
+            {
+              id: "location",
+              label: "Location",
+              value: location,
+              onChange: setLocation,
+              options: [
+                { value: "", label: "All locations" },
+                ...locations.map((loc) => ({ value: loc, label: loc })),
+              ],
+            },
+            {
+              id: "status",
+              label: "Status",
+              value: status,
+              onChange: setStatus,
+              options: [
+                { value: "available", label: "Available" },
+                { value: "reserved", label: "Reserved" },
+                { value: "sold", label: "Sold" },
+                { value: "all", label: "All statuses" },
+              ],
+            },
+          ]}
+        />
       </FadeIn>
 
       {!ready ? (

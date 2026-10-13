@@ -17,7 +17,9 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { Modal } from "@/components/Modal";
 import { Pagination } from "@/components/Pagination";
 import { Select } from "@/components/Select";
-import { PageLoader, Spinner } from "@/components/Spinner";
+import { FilterToolbar } from "@/components/FilterToolbar";
+import { TableSkeleton } from "@/components/Skeleton";
+import { PageLoader } from "@/components/Spinner";
 import { useToast } from "@/components/Toast";
 import { api, formatGbp, type PaginationMeta, type Plot, type Profile } from "@/lib/api";
 import { getAccessToken, getProfile } from "@/lib/auth";
@@ -310,39 +312,34 @@ export default function AdminPlotsPage() {
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <div className="glass flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:p-4">
-          <input
-            className="glass-input min-w-0 flex-1"
-            placeholder="Search name, location, description"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <Select
-            className="sm:w-44"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={[
-              { value: "all", label: "All statuses" },
-              { value: "available", label: "Available" },
-              { value: "reserved", label: "Reserved" },
-              { value: "sold", label: "Sold" },
-            ]}
-          />
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-center text-sm text-mist sm:min-w-[7rem]">
-            {loading ? (
-              <Spinner size="sm" />
-            ) : (
-              `${pagination?.total?.toLocaleString("en-GB") ?? plots.length} plots`
-            )}
-          </div>
-        </div>
+        <FilterToolbar
+          searchValue={q}
+          onSearchChange={setQ}
+          searchLabel="Search plots"
+          searchPlaceholder="Name, location, or description"
+          resultLabel={`${pagination?.total?.toLocaleString("en-GB") ?? plots.length} plots`}
+          loading={loading}
+          filters={[
+            {
+              id: "status",
+              label: "Status",
+              value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { value: "all", label: "All statuses" },
+                { value: "available", label: "Available" },
+                { value: "reserved", label: "Reserved" },
+                { value: "sold", label: "Sold" },
+              ],
+              className: "sm:max-w-[12rem]",
+            },
+          ]}
+        />
       </FadeIn>
 
       <FadeIn delay={0.08}>
         {loading && !plots.length ? (
-          <div className="glass flex items-center justify-center gap-2 rounded-2xl p-10 text-sm text-mist">
-            <Spinner size="sm" /> Loading inventory…
-          </div>
+          <TableSkeleton rows={6} />
         ) : (
           <>
           <AdminTable
