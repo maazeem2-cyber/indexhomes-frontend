@@ -41,41 +41,41 @@ export function FilterToolbar({
 }: FilterToolbarProps) {
   if (compact) {
     return (
-      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative min-w-0 flex-1 sm:max-w-xs">
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-white/35">
-              <SearchIcon className="h-3.5 w-3.5" />
-            </span>
-            <input
-              className="w-full rounded-lg border border-white/12 bg-white/[0.05] py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/45 focus:ring-2 focus:ring-teal/15"
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-              aria-label={searchLabel}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-2.5">
+        <div className="relative w-full">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-white/35">
+            <SearchIcon className="h-3.5 w-3.5" />
+          </span>
+          <input
+            className="w-full rounded-lg border border-white/12 bg-white/[0.05] py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/45 focus:ring-2 focus:ring-teal/15"
+            placeholder={searchPlaceholder}
+            value={searchValue}
+            onChange={(e) => onSearchChange(e.target.value)}
+            aria-label={searchLabel}
+          />
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap">
             {filters.map((filter) => (
               <Select
                 key={filter.id}
                 aria-label={filter.label}
-                className={`!w-auto min-w-[8.5rem] ${filter.className || ""}`}
+                className={`w-full sm:!w-auto sm:min-w-[9rem] ${filter.className || ""}`}
                 value={filter.value}
                 onChange={(e) => filter.onChange(e.target.value)}
                 options={filter.options}
               />
             ))}
           </div>
-        </div>
-        <div className="flex items-center gap-2 self-start lg:self-auto">
-          {resultLabel !== undefined ? (
-            <span className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-white/70">
-              {loading ? <Spinner size="sm" /> : null}
-              {resultLabel}
-            </span>
-          ) : null}
-          {trailing}
+          <div className="flex items-center gap-2">
+            {resultLabel !== undefined ? (
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-white/70">
+                {loading ? <Spinner size="sm" /> : null}
+                {resultLabel}
+              </span>
+            ) : null}
+            {trailing}
+          </div>
         </div>
       </div>
     );

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
+  AdminCard,
   AdminTable,
   AdminTd,
   AdminTr,
@@ -244,14 +245,14 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <FadeIn>
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-soft">
             Admin · Accounts
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             User <span className="text-aurora">management</span>
           </h1>
-          <p className="mt-2 text-sm text-mist">
+          <p className="mt-2 max-w-2xl text-sm text-mist">
             Review accounts in a clean table. Update roles, deactivate access, or remove unused
             accounts.
           </p>
@@ -297,6 +298,91 @@ export default function AdminUsersPage() {
                   </div>
                 ) : null
               }
+              mobileCards={users.map((user) => {
+                const superAdmin = isSuperAdmin(user);
+                const active = user.is_active !== false;
+                return (
+                  <AdminCard key={`m-${user.id}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.06] text-sm font-semibold text-teal-soft">
+                        {user.display_name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-teal-soft">
+                              {user.display_name}
+                            </p>
+                            {superAdmin ? (
+                              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-gold/80">
+                                Super admin
+                              </p>
+                            ) : null}
+                          </div>
+                          <StatusPill
+                            value={active ? "Active" : "Inactive"}
+                            tone={active ? "success" : "danger"}
+                          />
+                        </div>
+                        <MetaGrid
+                          dense
+                          items={[
+                            { label: "Email", value: user.email },
+                            {
+                              label: "Joined",
+                              value: user.created_at
+                                ? new Date(user.created_at).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "—",
+                            },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
+                      <div className="flex flex-wrap gap-2">
+                        <StatusPill value={user.role} tone={roleTone(user.role)} />
+                        <StatusPill
+                          value={user.email_verified ? "Verified" : "Pending"}
+                          tone={user.email_verified ? "success" : "warn"}
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <ActionIconButton
+                          label={superAdmin ? "Edit display name" : "Edit user"}
+                          onClick={() => requestEdit(user)}
+                        >
+                          <PencilIcon />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label={active ? "Deactivate user" : "Reactivate user"}
+                          tone={active ? "danger" : "accent"}
+                          disabled={superAdmin || user.id === profile.id}
+                          onClick={() =>
+                            setConfirm({
+                              type: active ? "deactivate" : "activate",
+                              user,
+                            })
+                          }
+                        >
+                          {active ? <BanIcon /> : <CheckCircleIcon />}
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Delete user"
+                          tone="danger"
+                          disabled={superAdmin || user.id === profile.id}
+                          onClick={() => setConfirm({ type: "delete", user })}
+                        >
+                          <TrashIcon />
+                        </ActionIconButton>
+                      </div>
+                    </div>
+                  </AdminCard>
+                );
+              })}
             >
               {users.map((user) => {
                 const superAdmin = isSuperAdmin(user);

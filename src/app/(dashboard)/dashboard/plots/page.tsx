@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import {
+  AdminCard,
   AdminTable,
   AdminTd,
   AdminTr,
@@ -292,21 +293,21 @@ export default function AdminPlotsPage() {
     <div className="space-y-6">
       <FadeIn>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-soft">
               Admin · Inventory
             </p>
             <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
               Plot <span className="text-aurora">inventory</span>
             </h1>
-            <p className="mt-2 text-sm text-mist">
+            <p className="mt-2 max-w-2xl text-sm text-mist">
               Manage listings in one table. Add or edit plots in a modal — prices stay index-linked.
             </p>
           </div>
           <button
             type="button"
             onClick={openCreate}
-            className="btn-iconed btn-primary !px-4 !py-2.5"
+            className="btn-iconed btn-primary w-full shrink-0 !px-4 !py-2.5 sm:w-auto"
             aria-label="New plot"
             title="New plot"
           >
@@ -357,6 +358,88 @@ export default function AdminPlotsPage() {
                 </div>
               ) : null
             }
+            mobileCards={plots.map((plot) => (
+              <AdminCard key={`m-${plot.id}`}>
+                <div className="flex items-start gap-3">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-white/12 bg-white/[0.04]">
+                    {plot.image_url ? (
+                      <Image
+                        src={plot.image_url}
+                        alt=""
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setViewPlot(plot)}
+                        className="text-left text-sm font-semibold text-teal-soft hover:underline"
+                      >
+                        {plot.name}
+                      </button>
+                      <StatusPill value={plot.status} tone={statusTone(plot.status)} />
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs text-white/45">{plot.description}</p>
+                    <MetaGrid
+                      dense
+                      items={[
+                        { label: "Location", value: plot.location },
+                        {
+                          label: "Tags",
+                          value: plot.tags?.length ? plot.tags.slice(0, 3).join(", ") : "—",
+                        },
+                        {
+                          label: "Badge",
+                          value: plot.just_added ? "Just added" : "Standard",
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
+                  <div className="flex gap-4 text-sm tabular-nums">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-white/40">Base</p>
+                      <p className="font-medium text-white/85">
+                        {formatGbp(Number(plot.base_price))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-white/40">Display</p>
+                      <p className="font-semibold text-teal-soft">
+                        {formatGbp(Number(plot.display_price ?? plot.base_price))}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ActionIconButton
+                      label="View"
+                      onClick={() => setViewPlot(plot)}
+                      tone="accent"
+                    >
+                      <EyeIcon />
+                    </ActionIconButton>
+                    <ActionIconButton label="Edit" onClick={() => requestEdit(plot)}>
+                      <PencilIcon />
+                    </ActionIconButton>
+                    <ActionIconButton label="Open public page" href={`/plots/${plot.id}`}>
+                      <ArrowRightIcon />
+                    </ActionIconButton>
+                    <ActionIconButton
+                      label="Delete"
+                      tone="danger"
+                      onClick={() => requestDelete(plot)}
+                    >
+                      <TrashIcon />
+                    </ActionIconButton>
+                  </div>
+                </div>
+              </AdminCard>
+            ))}
           >
             {plots.map((plot) => (
               <AdminTr key={plot.id}>

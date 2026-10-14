@@ -7,20 +7,25 @@ export function AdminTable({
   children,
   empty,
   toolbar,
+  mobileCards,
 }: {
   columns: string[];
   children: ReactNode;
   empty?: ReactNode;
   toolbar?: ReactNode;
+  /** Card list shown below `lg` instead of the wide table */
+  mobileCards?: ReactNode;
 }) {
   return (
     <div className="glass overflow-hidden rounded-2xl">
       {toolbar ? (
-        <div className="border-b border-white/10 bg-white/[0.03] px-3 py-2.5 sm:px-4">
+        <div className="border-b border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4">
           {toolbar}
         </div>
       ) : null}
-      <div className="overflow-x-auto">
+
+      {/* Desktop / large tablet table */}
+      <div className={`${mobileCards !== undefined ? "hidden lg:block" : ""} overflow-x-auto`}>
         <table className="min-w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/[0.05]">
@@ -37,8 +42,24 @@ export function AdminTable({
           <tbody className="divide-y divide-white/[0.08]">{children}</tbody>
         </table>
       </div>
+
+      {/* Phone / small tablet cards */}
+      {mobileCards !== undefined ? (
+        <div className="space-y-3 p-3 lg:hidden">{mobileCards}</div>
+      ) : null}
+
       {empty}
     </div>
+  );
+}
+
+export function AdminCard({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <article
+      className={`rounded-xl border border-white/10 bg-white/[0.03] p-3.5 ${className}`}
+    >
+      {children}
+    </article>
   );
 }
 
@@ -66,11 +87,21 @@ export function AdminTd({
   );
 }
 
-export function MetaGrid({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
+export function MetaGrid({
+  items,
+  dense = false,
+}: {
+  items: Array<{ label: string; value: ReactNode }>;
+  dense?: boolean;
+}) {
   return (
-    <div className="mt-1.5 grid gap-x-4 gap-y-0.5 text-[11px] leading-relaxed text-white/45 sm:grid-cols-2 lg:grid-cols-3">
+    <div
+      className={`mt-1.5 grid gap-x-4 gap-y-1 text-[11px] leading-relaxed text-white/45 ${
+        dense ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+      }`}
+    >
       {items.map((item) => (
-        <div key={item.label} className="min-w-0 truncate">
+        <div key={item.label} className="min-w-0 break-words">
           <span className="text-white/30">{item.label}: </span>
           <span className="text-white/70">{item.value}</span>
         </div>
@@ -95,7 +126,7 @@ export function StatusPill({
   };
   return (
     <span
-      className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize tracking-wide ring-1 ring-inset ${tones[tone]}`}
+      className={`inline-flex shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize tracking-wide ring-1 ring-inset ${tones[tone]}`}
     >
       {value}
     </span>
