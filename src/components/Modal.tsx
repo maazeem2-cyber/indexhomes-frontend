@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { IconButton } from "@/components/Button";
 import { XIcon } from "@/components/icons";
@@ -17,12 +17,41 @@ type ModalProps = {
 
 const MODAL_ROOT_ATTR = "data-ih-modal-root";
 
+/** Tracks how many modals currently request a body scroll lock. */
+let scrollLockCount = 0;
+
+function lockBodyScroll() {
+  if (typeof document === "undefined") return;
+  scrollLockCount += 1;
+  if (scrollLockCount === 1) {
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function unlockBodyScroll() {
+  if (typeof document === "undefined") return;
+  scrollLockCount = Math.max(0, scrollLockCount - 1);
+  if (scrollLockCount === 0) {
+    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
+  }
+}
+
+function resetBodyScroll() {
+  if (typeof document === "undefined") return;
+  scrollLockCount = 0;
+  document.documentElement.style.overflow = "";
+  document.body.style.overflow = "";
+  document.body.style.paddingRight = "";
+}
+
 /** Removes leaked modal portals and unlocks body scroll (safe after route changes). */
 export function cleanupModalArtifacts() {
   if (typeof document === "undefined") return;
   document.querySelectorAll(`[${MODAL_ROOT_ATTR}]`).forEach((node) => node.remove());
-  document.body.style.overflow = "";
-  document.body.style.paddingRight = "";
+  resetBodyScroll();
 }
 
 export function Modal({
@@ -36,6 +65,8 @@ export function Modal({
 }: ModalProps) {
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     setMounted(true);
@@ -45,26 +76,19 @@ export function Modal({
     if (!open) return;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
 
     return () => {
       document.removeEventListener("keydown", onKey);
-      // Wait a frame so this portal can unmount before we decide.
-      requestAnimationFrame(() => {
-        const stillOpen = document.querySelector(`[${MODAL_ROOT_ATTR}]`);
-        document.body.style.overflow = stillOpen ? "hidden" : prevOverflow || "";
-      });
+      unlockBodyScroll();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!mounted || !open) return null;
 
-  // Instant mount/unmount (no AnimatePresence). Exit animations on body portals
-  // commonly leak after Next.js client navigations and leave a stuck blur overlay.
   return createPortal(
     <div
       {...{ [MODAL_ROOT_ATTR]: "" }}
