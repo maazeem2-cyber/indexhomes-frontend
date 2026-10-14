@@ -25,6 +25,7 @@ type FilterToolbarProps = {
   resultLabel?: string;
   loading?: boolean;
   trailing?: ReactNode;
+  compact?: boolean;
 };
 
 export function FilterToolbar({
@@ -36,10 +37,53 @@ export function FilterToolbar({
   resultLabel,
   loading = false,
   trailing,
+  compact = false,
 }: FilterToolbarProps) {
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1 sm:max-w-xs">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-white/35">
+              <SearchIcon className="h-3.5 w-3.5" />
+            </span>
+            <input
+              className="w-full rounded-lg border border-white/10 bg-[#07111f] py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/45 focus:ring-2 focus:ring-teal/15"
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              aria-label={searchLabel}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {filters.map((filter) => (
+              <Select
+                key={filter.id}
+                aria-label={filter.label}
+                className={`!w-auto min-w-[8.5rem] ${filter.className || ""}`}
+                value={filter.value}
+                onChange={(e) => filter.onChange(e.target.value)}
+                options={filter.options}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start lg:self-auto">
+          {resultLabel !== undefined ? (
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-white/65">
+              {loading ? <Spinner size="sm" /> : null}
+              {resultLabel}
+            </span>
+          ) : null}
+          {trailing}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="glass overflow-hidden rounded-2xl">
-      <div className="flex flex-col gap-3 border-b border-white/[0.06] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070f1c]">
+      <div className="flex flex-col gap-3 border-b border-white/[0.06] bg-[#050b14]/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
             Find & filter
@@ -49,7 +93,7 @@ export function FilterToolbar({
           </p>
         </div>
         {resultLabel !== undefined ? (
-          <div className="inline-flex items-center gap-2 self-start rounded-full border border-teal/25 bg-teal/10 px-3 py-1.5 text-xs font-semibold text-teal-soft sm:self-auto">
+          <div className="inline-flex items-center gap-2 self-start rounded-lg border border-teal/25 bg-teal/10 px-3 py-1.5 text-xs font-semibold text-teal-soft sm:self-auto">
             {loading ? <Spinner size="sm" /> : null}
             <span>{resultLabel}</span>
           </div>

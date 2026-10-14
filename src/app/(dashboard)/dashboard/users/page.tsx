@@ -1,7 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { AdminTable, AdminTd, ActionIconButton, StatusPill } from "@/components/AdminTable";
+import {
+  AdminTable,
+  AdminTd,
+  AdminTr,
+  ActionIconButton,
+  MetaGrid,
+  StatusPill,
+} from "@/components/AdminTable";
 import { Button, ButtonLink } from "@/components/Button";
 import { FadeIn } from "@/components/FadeIn";
 import {
@@ -252,38 +259,37 @@ export default function AdminUsersPage() {
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <FilterToolbar
-          searchValue={q}
-          onSearchChange={setQ}
-          searchLabel="Search users"
-          searchPlaceholder="Name or email address"
-          resultLabel={`${pagination?.total?.toLocaleString("en-GB") ?? users.length} users`}
-          loading={loading}
-          filters={[
-            {
-              id: "role",
-              label: "Role",
-              value: roleFilter,
-              onChange: setRoleFilter,
-              options: [
-                { value: "all", label: "All roles" },
-                { value: "buyer", label: "Buyer" },
-                { value: "seller", label: "Seller" },
-                { value: "admin", label: "Admin" },
-              ],
-              className: "sm:max-w-[12rem]",
-            },
-          ]}
-        />
-      </FadeIn>
-
-      <FadeIn delay={0.08}>
         {loading && !users.length ? (
           <TableSkeleton rows={5} />
         ) : (
           <>
             <AdminTable
-              columns={["User", "Email", "Role", "Status", "Verified", "Joined", "Actions"]}
+              columns={["Account", "Role", "Status", "Verified", "Actions"]}
+              toolbar={
+                <FilterToolbar
+                  compact
+                  searchValue={q}
+                  onSearchChange={setQ}
+                  searchLabel="Search users"
+                  searchPlaceholder="Search these results"
+                  resultLabel={`${pagination?.total?.toLocaleString("en-GB") ?? users.length} users`}
+                  loading={loading}
+                  filters={[
+                    {
+                      id: "role",
+                      label: "Role",
+                      value: roleFilter,
+                      onChange: setRoleFilter,
+                      options: [
+                        { value: "all", label: "All roles" },
+                        { value: "buyer", label: "Buyer" },
+                        { value: "seller", label: "Seller" },
+                        { value: "admin", label: "Admin" },
+                      ],
+                    },
+                  ]}
+                />
+              }
               empty={
                 !users.length ? (
                   <div className="px-5 py-10 text-center text-sm text-mist">
@@ -296,24 +302,38 @@ export default function AdminUsersPage() {
                 const superAdmin = isSuperAdmin(user);
                 const active = user.is_active !== false;
                 return (
-                  <tr key={user.id} className="transition hover:bg-white/[0.03]">
+                  <AdminTr key={user.id}>
                     <AdminTd>
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-teal/30 to-gold/20 text-xs font-semibold text-white">
+                      <div className="flex min-w-[16rem] items-start gap-3">
+                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-white/10 bg-[#050b14] text-sm font-semibold text-teal-soft">
                           {user.display_name.slice(0, 1).toUpperCase()}
                         </span>
-                        <div className="min-w-0">
-                          <p className="font-medium text-white">{user.display_name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-teal-soft">
+                            {user.display_name}
+                          </p>
                           {superAdmin ? (
-                            <p className="text-[11px] font-medium uppercase tracking-wider text-gold/80">
+                            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-gold/80">
                               Super admin
                             </p>
                           ) : null}
+                          <MetaGrid
+                            items={[
+                              { label: "Email", value: user.email },
+                              {
+                                label: "Joined",
+                                value: user.created_at
+                                  ? new Date(user.created_at).toLocaleDateString("en-GB", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : "—",
+                              },
+                            ]}
+                          />
                         </div>
                       </div>
-                    </AdminTd>
-                    <AdminTd>
-                      <span className="text-white/75">{user.email}</span>
                     </AdminTd>
                     <AdminTd>
                       <StatusPill value={user.role} tone={roleTone(user.role)} />
@@ -331,18 +351,7 @@ export default function AdminUsersPage() {
                       />
                     </AdminTd>
                     <AdminTd>
-                      <span className="whitespace-nowrap text-white/60">
-                        {user.created_at
-                          ? new Date(user.created_at).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </span>
-                    </AdminTd>
-                    <AdminTd>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
                         <ActionIconButton
                           label={superAdmin ? "Edit display name" : "Edit user"}
                           onClick={() => requestEdit(user)}
@@ -372,7 +381,7 @@ export default function AdminUsersPage() {
                         </ActionIconButton>
                       </div>
                     </AdminTd>
-                  </tr>
+                  </AdminTr>
                 );
               })}
             </AdminTable>

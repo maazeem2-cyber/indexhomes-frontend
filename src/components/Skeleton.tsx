@@ -32,11 +32,17 @@ export function MetricGridSkeleton({ count = 4 }: { count?: number }) {
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="glass space-y-3 rounded-[1.25rem] p-4" aria-busy="true" aria-label="Loading table">
-      <Skeleton className="h-4 w-full max-w-md" />
-      {Array.from({ length: rows }, (_, i) => (
-        <Skeleton key={i} className="h-14 w-full" />
-      ))}
+    <div
+      className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070f1c] p-3"
+      aria-busy="true"
+      aria-label="Loading table"
+    >
+      <Skeleton className="mb-3 h-10 w-full" />
+      <div className="space-y-2">
+        {Array.from({ length: rows }, (_, i) => (
+          <Skeleton key={i} className="h-16 w-full !rounded-md" />
+        ))}
+      </div>
     </div>
   );
 }

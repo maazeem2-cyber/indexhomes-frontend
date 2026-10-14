@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
-import { AdminTable, AdminTd, ActionIconButton, StatusPill } from "@/components/AdminTable";
+import {
+  AdminTable,
+  AdminTd,
+  AdminTr,
+  ActionIconButton,
+  MetaGrid,
+  StatusPill,
+} from "@/components/AdminTable";
 import { Button, ButtonLink } from "@/components/Button";
 import { FadeIn } from "@/components/FadeIn";
 import {
@@ -312,38 +319,37 @@ export default function AdminPlotsPage() {
       </FadeIn>
 
       <FadeIn delay={0.05}>
-        <FilterToolbar
-          searchValue={q}
-          onSearchChange={setQ}
-          searchLabel="Search plots"
-          searchPlaceholder="Name, location, or description"
-          resultLabel={`${pagination?.total?.toLocaleString("en-GB") ?? plots.length} plots`}
-          loading={loading}
-          filters={[
-            {
-              id: "status",
-              label: "Status",
-              value: statusFilter,
-              onChange: setStatusFilter,
-              options: [
-                { value: "all", label: "All statuses" },
-                { value: "available", label: "Available" },
-                { value: "reserved", label: "Reserved" },
-                { value: "sold", label: "Sold" },
-              ],
-              className: "sm:max-w-[12rem]",
-            },
-          ]}
-        />
-      </FadeIn>
-
-      <FadeIn delay={0.08}>
         {loading && !plots.length ? (
           <TableSkeleton rows={6} />
         ) : (
           <>
           <AdminTable
-            columns={["Plot", "Location", "Base", "Display", "Status", "Actions"]}
+            columns={["Listing", "Status", "Base", "Display", "Actions"]}
+            toolbar={
+              <FilterToolbar
+                compact
+                searchValue={q}
+                onSearchChange={setQ}
+                searchLabel="Search plots"
+                searchPlaceholder="Search these results"
+                resultLabel={`${pagination?.total?.toLocaleString("en-GB") ?? plots.length} plots`}
+                loading={loading}
+                filters={[
+                  {
+                    id: "status",
+                    label: "Status",
+                    value: statusFilter,
+                    onChange: setStatusFilter,
+                    options: [
+                      { value: "all", label: "All statuses" },
+                      { value: "available", label: "Available" },
+                      { value: "reserved", label: "Reserved" },
+                      { value: "sold", label: "Sold" },
+                    ],
+                  },
+                ]}
+              />
+            }
             empty={
               !plots.length ? (
                 <div className="px-5 py-10 text-center text-sm text-mist">
@@ -353,10 +359,10 @@ export default function AdminPlotsPage() {
             }
           >
             {plots.map((plot) => (
-              <tr key={plot.id} className="transition hover:bg-white/[0.03]">
+              <AdminTr key={plot.id}>
                 <AdminTd>
-                  <div className="flex min-w-[14rem] items-center gap-3">
-                    <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-[#0a1628]">
+                  <div className="flex min-w-[18rem] items-start gap-3">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-white/10 bg-[#050b14]">
                       {plot.image_url ? (
                         <Image
                           src={plot.image_url}
@@ -367,30 +373,52 @@ export default function AdminPlotsPage() {
                         />
                       ) : null}
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-white">{plot.name}</p>
-                      <p className="truncate text-xs text-mist">{plot.description}</p>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewPlot(plot)}
+                        className="truncate text-left text-sm font-semibold text-teal-soft hover:underline"
+                      >
+                        {plot.name}
+                      </button>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-white/45">{plot.description}</p>
+                      <MetaGrid
+                        items={[
+                          { label: "Location", value: plot.location },
+                          {
+                            label: "Tags",
+                            value: plot.tags?.length ? plot.tags.slice(0, 3).join(", ") : "—",
+                          },
+                          {
+                            label: "Badge",
+                            value: plot.just_added ? "Just added" : "Standard",
+                          },
+                        ]}
+                      />
                     </div>
                   </div>
-                </AdminTd>
-                <AdminTd>
-                  <span className="text-white/80">{plot.location}</span>
-                </AdminTd>
-                <AdminTd>
-                  <span className="tabular-nums text-white/80">
-                    {formatGbp(Number(plot.base_price))}
-                  </span>
-                </AdminTd>
-                <AdminTd>
-                  <span className="tabular-nums font-medium text-teal-soft">
-                    {formatGbp(Number(plot.display_price ?? plot.base_price))}
-                  </span>
                 </AdminTd>
                 <AdminTd>
                   <StatusPill value={plot.status} tone={statusTone(plot.status)} />
                 </AdminTd>
                 <AdminTd>
-                  <div className="flex items-center gap-1.5">
+                  <div className="tabular-nums">
+                    <p className="text-xs text-white/40">Base</p>
+                    <p className="font-medium text-white/85">
+                      {formatGbp(Number(plot.base_price))}
+                    </p>
+                  </div>
+                </AdminTd>
+                <AdminTd>
+                  <div className="tabular-nums">
+                    <p className="text-xs text-white/40">Display</p>
+                    <p className="font-semibold text-teal-soft">
+                      {formatGbp(Number(plot.display_price ?? plot.base_price))}
+                    </p>
+                  </div>
+                </AdminTd>
+                <AdminTd>
+                  <div className="flex items-center gap-1">
                     <ActionIconButton
                       label="View"
                       onClick={() => setViewPlot(plot)}
@@ -416,7 +444,7 @@ export default function AdminPlotsPage() {
                     </ActionIconButton>
                   </div>
                 </AdminTd>
-              </tr>
+              </AdminTr>
             ))}
           </AdminTable>
           <div className="mt-4">
