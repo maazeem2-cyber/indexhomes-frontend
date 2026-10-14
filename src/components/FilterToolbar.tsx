@@ -82,8 +82,8 @@ export function FilterToolbar({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#0c1a2e]/90 backdrop-blur-sm">
-      <div className="flex flex-col gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="glass overflow-hidden rounded-2xl">
+      <div className="flex flex-col gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
             Find & filter
