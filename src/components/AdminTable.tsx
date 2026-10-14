@@ -14,27 +14,27 @@ export function AdminTable({
   toolbar?: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070f1c] shadow-[0_20px_60px_-28px_rgba(0,0,0,0.75)]">
+    <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#0c1a2e]/90 shadow-[0_16px_48px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm">
       {toolbar ? (
-        <div className="border-b border-white/[0.06] bg-[#050b14]/90 px-3 py-2.5 sm:px-4">
+        <div className="border-b border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-4">
           {toolbar}
         </div>
       ) : null}
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-white/[0.08] bg-[#03070f]">
+            <tr className="border-b border-white/10 bg-white/[0.06]">
               {columns.map((col) => (
                 <th
                   key={col}
-                  className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 sm:px-4"
+                  className="whitespace-nowrap px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50 sm:px-4"
                 >
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.05]">{children}</tbody>
+          <tbody className="divide-y divide-white/[0.07]">{children}</tbody>
         </table>
       </div>
       {empty}
@@ -50,7 +50,7 @@ export function AdminTr({
   className?: string;
 }) {
   return (
-    <tr className={`bg-[#0a1424]/70 transition hover:bg-[#0f1c30] ${className}`}>{children}</tr>
+    <tr className={`bg-transparent transition hover:bg-white/[0.04] ${className}`}>{children}</tr>
   );
 }
 
@@ -122,7 +122,7 @@ export function ActionIconButton({
     accent: "text-teal-soft hover:bg-teal/15 hover:text-teal-soft",
     danger: "text-rose-300/85 hover:bg-rose-400/15 hover:text-rose-200",
   };
-  const className = `inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-[#07111f]/60 transition ${tones[tone]} disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-[#07111f]/60`;
+  const className = `inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] transition ${tones[tone]} disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white/[0.04]`;
 
   if (href && !disabled) {
     return (

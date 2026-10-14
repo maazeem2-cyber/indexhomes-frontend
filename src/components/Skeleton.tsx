@@ -33,7 +33,7 @@ export function MetricGridSkeleton({ count = 4 }: { count?: number }) {
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div
-      className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070f1c] p-3"
+      className="overflow-hidden rounded-2xl border border-white/12 bg-[#0c1a2e]/90 p-3"
       aria-busy="true"
       aria-label="Loading table"
     >

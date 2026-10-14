@@ -48,7 +48,7 @@ export function FilterToolbar({
               <SearchIcon className="h-3.5 w-3.5" />
             </span>
             <input
-              className="w-full rounded-lg border border-white/10 bg-[#07111f] py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/45 focus:ring-2 focus:ring-teal/15"
+              className="w-full rounded-lg border border-white/12 bg-white/[0.05] py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/45 focus:ring-2 focus:ring-teal/15"
               placeholder={searchPlaceholder}
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -70,7 +70,7 @@ export function FilterToolbar({
         </div>
         <div className="flex items-center gap-2 self-start lg:self-auto">
           {resultLabel !== undefined ? (
-            <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-white/65">
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-white/70">
               {loading ? <Spinner size="sm" /> : null}
               {resultLabel}
             </span>
@@ -82,8 +82,8 @@ export function FilterToolbar({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070f1c]">
-      <div className="flex flex-col gap-3 border-b border-white/[0.06] bg-[#050b14]/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#0c1a2e]/90 backdrop-blur-sm">
+      <div className="flex flex-col gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
             Find & filter

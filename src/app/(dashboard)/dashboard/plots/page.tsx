@@ -362,7 +362,7 @@ export default function AdminPlotsPage() {
               <AdminTr key={plot.id}>
                 <AdminTd>
                   <div className="flex min-w-[18rem] items-start gap-3">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-white/10 bg-[#050b14]">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-white/12 bg-white/[0.04]">
                       {plot.image_url ? (
                         <Image
                           src={plot.image_url}
