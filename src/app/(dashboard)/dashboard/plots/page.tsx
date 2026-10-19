@@ -361,7 +361,7 @@ export default function AdminPlotsPage() {
             mobileCards={plots.map((plot) => (
               <AdminCard key={`m-${plot.id}`}>
                 <div className="flex items-start gap-3">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-black bg-[#050b14]">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-teal/40 bg-[#050b14]">
                     {plot.image_url ? (
                       <Image
                         src={plot.image_url}
@@ -445,7 +445,7 @@ export default function AdminPlotsPage() {
               <AdminTr key={plot.id}>
                 <AdminTd>
                   <div className="flex min-w-[18rem] items-start gap-3">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-black bg-[#050b14]">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-teal/40 bg-[#050b14]">
                       {plot.image_url ? (
                         <Image
                           src={plot.image_url}
