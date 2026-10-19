@@ -56,7 +56,7 @@ export function AdminTable({
 export function AdminCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <article
-      className={`rounded-xl border border-white/10 bg-white/[0.03] p-3.5 ${className}`}
+      className={`rounded-xl border border-[#081221] bg-[#0a1628]/55 p-3.5 ${className}`}
     >
       {children}
     </article>
@@ -153,7 +153,7 @@ export function ActionIconButton({
     accent: "text-teal-soft hover:bg-teal/15 hover:text-teal-soft",
     danger: "text-rose-300/85 hover:bg-rose-400/15 hover:text-rose-200",
   };
-  const className = `inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] transition ${tones[tone]} disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white/[0.04]`;
+  const className = `inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#081221] bg-[#07111f]/70 transition ${tones[tone]} disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-[#07111f]/70`;
 
   if (href && !disabled) {
     return (

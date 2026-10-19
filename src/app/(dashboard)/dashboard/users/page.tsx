@@ -304,7 +304,7 @@ export default function AdminUsersPage() {
                 return (
                   <AdminCard key={`m-${user.id}`}>
                     <div className="flex items-start gap-3">
-                      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.06] text-sm font-semibold text-teal-soft">
+                      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-black bg-[#050b14] text-sm font-semibold text-teal-soft">
                         {user.display_name.slice(0, 1).toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -391,7 +391,7 @@ export default function AdminUsersPage() {
                   <AdminTr key={user.id}>
                     <AdminTd>
                       <div className="flex min-w-[16rem] items-start gap-3">
-                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-white/12 bg-white/[0.06] text-sm font-semibold text-teal-soft">
+                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-black bg-[#050b14] text-sm font-semibold text-teal-soft">
                           {user.display_name.slice(0, 1).toUpperCase()}
                         </span>
                         <div className="min-w-0 flex-1">

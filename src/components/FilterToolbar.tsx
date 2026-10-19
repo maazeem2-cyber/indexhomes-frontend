@@ -47,7 +47,7 @@ export function FilterToolbar({
             <SearchIcon className="h-3.5 w-3.5" />
           </span>
           <input
-            className="w-full rounded-lg border border-white/12 bg-white/[0.05] py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/45 focus:ring-2 focus:ring-teal/15"
+            className="w-full rounded-lg border border-[#081221] bg-[#07111f]/80 py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-teal/40 focus:ring-2 focus:ring-teal/10"
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -60,7 +60,7 @@ export function FilterToolbar({
               <Select
                 key={filter.id}
                 aria-label={filter.label}
-                className={`w-full sm:!w-auto sm:min-w-[9rem] ${filter.className || ""}`}
+                className={`admin-dark-field w-full sm:!w-auto sm:min-w-[9rem] ${filter.className || ""}`}
                 value={filter.value}
                 onChange={(e) => filter.onChange(e.target.value)}
                 options={filter.options}
@@ -69,7 +69,7 @@ export function FilterToolbar({
           </div>
           <div className="flex items-center gap-2">
             {resultLabel !== undefined ? (
-              <span className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-white/70">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-[#081221] bg-[#07111f]/80 px-2.5 py-1.5 text-xs font-medium text-white/70">
                 {loading ? <Spinner size="sm" /> : null}
                 {resultLabel}
               </span>

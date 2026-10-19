@@ -202,6 +202,17 @@ h3,
     @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50;
   }
 
+  /* Admin Plots/Users filters — dark borders (no bright white outline) */
+  .admin-dark-field .select-control {
+    background: rgba(7, 17, 31, 0.85);
+    border-color: #081221;
+  }
+
+  .admin-dark-field .select-control:focus {
+    border-color: rgba(62, 207, 191, 0.4);
+    box-shadow: 0 0 0 2px rgba(62, 207, 191, 0.1);
+  }
+
   .page-btn {
     @apply inline-flex h-9 min-w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-2.5 text-sm font-medium text-white/70 transition;
   }
